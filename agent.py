@@ -39,6 +39,11 @@ Rules you must follow:
 3. Composites (cfrp) lose strength with repeated pressure cycles. If you choose one,
    say so explicitly and prefer designs with a clear margin at end of life.
 4. Finish by calling submit_design (passing design) or reject_request (cannot be made safe).
+5. Lighter is better. Once a design passes, compare safety_factor_end_of_life with
+   required_safety_factor. If it is more than about 15% above the requirement, reduce
+   thickness_mm (or diameter) to bring it closer, and re-evaluate. Submit the LIGHTEST
+   design that passed. Never submit a design you did not evaluate. You have at most
+   10 tool steps in total, so stop trimming and submit once you are within ~15%.
 Keep explanations short and concrete. Cite numbers from the tool results."""
 
 TOOLS = [
