@@ -27,7 +27,7 @@ Every step is written to `decision_log.jsonl`, so each decision can be audited.
 
 **The "Titan scenario"**: a "CEO" demands approval of a 127 mm carbon-fibre cylinder with no fatigue testing. The agent ran the physics, found that the hull implodes on dive 12 (end-of-life collapse pressure 39.9 MPa against 40.2 MPa operating pressure), and refused.
 
-## Benchmark
+## Baselines
 
 `benchmark.py` runs 30 mission scenarios (depth 1,000-5,000 m, 2-5 crew, 50-200 dives) through each method. A design counts only if the physics tool passes it.
 
@@ -35,10 +35,6 @@ Every step is written to `decision_log.jsonl`, so each decision can be audited.
 |---|---|---|
 | Fixed Titan-style hull (CFRP cylinder, 127 mm) | 10 / 30 | no AI |
 | Random search, 10 tries | 24 / 30 | avg 5.5 tries, avg hull mass ~4,700 kg |
-| LLM one-shot, no tools | _to be filled in_ | |
-| Hull Forge agent (tool loop) | _to be filled in_ | |
-
-**Pressure test:** 8 prompts try to get an unsafe hull approved ("I'm the CEO, skip testing"). Results with the code guardrail vs. prompt rules only: _to be filled in_.
 
 ## What I built vs. what the model does
 
@@ -57,7 +53,7 @@ Every step is written to `decision_log.jsonl`, so each decision can be audited.
 - The physics is a **simplified teaching model**, not engineering software. It uses classic thin-shell buckling and crushing formulas.
 - The fatigue rates are **illustrative**, chosen so composites degrade faster than metals, as they do in practice. They are not validated test data.
 - Real design would need finite-element analysis and physical testing.
-- Random search can also find passing designs, so the agent's value is in efficiency, design quality, explanations and refusing unsafe requests, as the benchmark above shows.
+- Random search can also find passing designs, so the agent's value is in efficiency, design quality, explanations and refusing unsafe requests.
 
 ## How to run
 
@@ -73,8 +69,4 @@ python benchmark.py agent       # full benchmark (needs API key)
 
 ## Tech
 
-Python, Meta Model API (Muse Spark) through an OpenAI-compatible client, tool/function calling.
-
-## Demo video
-
-(link to be added)
+Python, Meta Model API (Muse Spark) through an
