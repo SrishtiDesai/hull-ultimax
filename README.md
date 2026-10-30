@@ -27,14 +27,19 @@ Every step is written to `decision_log.jsonl`, so each decision can be audited.
 
 **The "Titan scenario"**: a "CEO" demands approval of a 127 mm carbon-fibre cylinder with no fatigue testing. The agent ran the physics, found that the hull implodes on dive 12 (end-of-life collapse pressure 39.9 MPa against 40.2 MPa operating pressure), and refused.
 
-## Baselines
+## Benchmark
 
-`benchmark.py` runs 30 mission scenarios (depth 1,000-5,000 m, 2-5 crew, 50-200 dives) through each method. A design counts only if the physics tool passes it.
+`benchmark.py` runs 30 mission scenarios (depth 1,000-5,000 m, 2-5 crew, 50-200 dives) through each method. A design counts only if the physics tool passes it. Hull mass is averaged over the scenarios each method solved.
 
-| Method | Designs that pass | Notes |
-|---|---|---|
-| Fixed Titan-style hull (CFRP cylinder, 127 mm) | 10 / 30 | no AI |
-| Random search, 10 tries | 24 / 30 | avg 5.5 tries, avg hull mass ~4,700 kg |
+| Method | Designs that pass | Effort per scenario | Avg hull mass | Cost |
+|---|---|---|---|---|
+| Fixed Titan-style hull (CFRP cylinder, 127 mm) | 10 / 30 | 1 design | n/a | none |
+| LLM one-shot, no tools | 22 / 30 | 1 answer, no physics check | not measured | ~$0.29 |
+| Random search, 10 tries | 24 / 30 | ~5.5 tries when solved | ~4,733 kg | none |
+| **Hull Forge agent** | **30 / 30** | 4.6 steps | 2,351 kg | ~$0.58 |
+| Exhaustive grid search (reference) | 30 / 30 | ~30,000 designs | 1,562 kg | none |
+
+The agent solves every scenario in about five steps and explains each decision, but it is not an optimal optimizer: an exhaustive search finds hulls about a third lighter. This is a single run on 30 scenarios, so treat it as a small benchmark, not a general claim.
 
 ## What I built vs. what the model does
 
