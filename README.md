@@ -29,17 +29,21 @@ Every step is written to `decision_log.jsonl`, so each decision can be audited.
 
 ## Benchmark
 
-`benchmark.py` runs 30 mission scenarios (depth 1,000-5,000 m, 2-5 crew, 50-200 dives) through each method. A design counts only if the physics tool passes it. Hull mass is averaged over the scenarios each method solved.
+`benchmark.py` runs every combination of depth (1,000-8,000 m), crew (2, 3 or 5) and dives (50, 100 or 200): 72 mission scenarios. A design counts only if the physics tool passes the final submitted design.
 
-| Method | Designs that pass | Effort per scenario | Avg hull mass | Cost |
-|---|---|---|---|---|
-| Fixed Titan-style hull (CFRP cylinder, 127 mm) | 10 / 30 | 1 design | n/a | none |
-| LLM one-shot, no tools | 22 / 30 | 1 answer, no physics check | not measured | ~$0.29 |
-| Random search, 10 tries | 24 / 30 | ~5.5 tries when solved | ~4,733 kg | none |
-| **Hull Forge agent** | **30 / 30** | 4.6 steps | 2,351 kg | ~$0.58 |
-| Exhaustive grid search (reference) | 30 / 30 | ~30,000 designs | 1,562 kg | none |
+| Method | 1-3 km | 4-6 km | 7-8 km | Total | Cost |
+|---|---|---|---|---|---|
+| Fixed Titan-style hull (carbon fibre cylinder, 127 mm) | 15 / 27 | 0 / 27 | 0 / 18 | 15 / 72 | none |
+| Random search, 10 tries | 20 / 27 | 13 / 27 | 3 / 18 | 36 / 72 | none |
+| **Hull Forge agent** | **27 / 27** | **27 / 27** | **18 / 18** | **72 / 72** | ~$1.55 |
 
-The agent solves every scenario in about five steps and explains each decision, but it is not an optimal optimizer: an exhaustive search finds hulls about a third lighter. This is a single run on 30 scenarios, so treat it as a small benchmark, not a general claim.
+The agent needed 4.6 steps on average (limit: 10), and its submitted hulls average 3,396 kg. Random search needed about 4.3 tries when it succeeded, and its successful hulls average about 7,086 kg. It solved mostly the easier scenarios, so the two mass figures are not directly comparable.
+
+Random search samples wall thicknesses from 10 to 300 mm (an earlier version capped at 200 mm could not reach deep-water designs).
+
+**Earlier 30-scenario sample (depth 1-5 km):** the agent solved 30 / 30 with hulls averaging 2,351 kg. An exhaustive search of about 30,000 designs per scenario finds hulls averaging 1,562 kg, so the agent is not an optimal optimizer. A one-shot LLM with no tools solved 22 / 30 (~$0.29).
+
+This is a single run of each method, so treat it as a small benchmark and not a general claim.
 
 ## Pressure test
 
