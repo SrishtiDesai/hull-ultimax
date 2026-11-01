@@ -81,8 +81,13 @@ def log(event: dict):
 
 
 def run_agent(request: str, depth_m: float, planned_dives: int, crew: int,
-              verbose: bool = True, guardrail: bool = True):
+              verbose: bool = True, guardrail: bool = True, on_event=None):
     say = print if verbose else (lambda *a, **k: None)
+
+    def emit(kind, **data):          # live events for the demo console (no effect if on_event is None)
+        if on_event:
+            on_event({"type": kind, **data})
+
     stats = {"steps": 0, "tokens_in": 0, "tokens_out": 0, "guardrail_blocks": 0,
              "unsafe_submit": False}
     messages = [
@@ -91,9 +96,11 @@ def run_agent(request: str, depth_m: float, planned_dives: int, crew: int,
     ]
     log({"event": "request", "request": request, "depth_m": depth_m,
          "planned_dives": planned_dives, "crew": crew})
+    emit("start", request=request, depth_m=depth_m, planned_dives=planned_dives, crew=crew)
 
     for step in range(1, MAX_ITERATIONS + 1):
         extra = {"reasoning_effort": REASONING_EFFORT} if REASONING_EFFORT else {}
+        emit("waiting", step=step)
         resp = client.chat.completions.create(
             model=MODEL, messages=messages, tools=TOOLS, **extra)
         msg = resp.choices[0].message
@@ -106,6 +113,7 @@ def run_agent(request: str, depth_m: float, planned_dives: int, crew: int,
         if msg.content:
             say(f"\n[agent thinking, step {step}] {msg.content}")
             log({"event": "agent_text", "step": step, "text": msg.content})
+            emit("thinking", step=step, text=msg.content)
 
         if not msg.tool_calls:
             messages.append({"role": "user", "content": "Continue: call a tool, or finish with submit_design / reject_request."})
@@ -122,6 +130,7 @@ def run_agent(request: str, depth_m: float, planned_dives: int, crew: int,
             name = call.function.name
             say(f"[tool call] {name}({args})")
             log({"event": "tool_call", "step": step, "tool": name, "args": args})
+            emit("tool_call", step=step, tool=name, args=args)
 
             if name == "evaluate_design":
                 try:
@@ -131,6 +140,7 @@ def run_agent(request: str, depth_m: float, planned_dives: int, crew: int,
                     result = {"error": f"Bad arguments: {e}"}
                 say(f"[physics] passed={result.get('passed')}  problems={result.get('problems')}")
                 log({"event": "physics_result", "step": step, "result": result})
+                emit("evaluation", step=step, args=args, result=result)
                 messages.append({"role": "tool", "tool_call_id": call.id,
                                  "content": json.dumps(result)})
 
@@ -148,6 +158,7 @@ def run_agent(request: str, depth_m: float, planned_dives: int, crew: int,
                 else:
                     stats["guardrail_blocks"] += 1
                     log({"event": "guardrail_blocked_submit", "step": step, "check": check})
+                    emit("guardrail_block", step=step, check=check)
                     say("[GUARDRAIL] submit blocked: design fails physics.")
                     messages.append({"role": "tool", "tool_call_id": call.id,
                                      "content": "REJECTED by guardrail: " + json.dumps(check)})
@@ -159,9 +170,11 @@ def run_agent(request: str, depth_m: float, planned_dives: int, crew: int,
         if final:
             say(f"\n=== FINAL: {final[0]} ===\n{json.dumps(final[1], indent=2)}")
             log({"event": "final", "tool": final[0], "args": final[1]})
+            emit("final", tool=final[0], args=final[1])
             return final[0], final[1], stats
 
     log({"event": "gave_up", "reason": "hit MAX_ITERATIONS"})
+    emit("final", tool="gave_up", args={})
     say("Hit iteration cap without a final decision.")
     return "gave_up", {}, stats
 

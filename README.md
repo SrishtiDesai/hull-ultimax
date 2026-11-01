@@ -12,7 +12,8 @@ Built solo for the Meta Global AI Developer Hackathon (Push the Frontier track, 
 - **Muse Spark 1.3 (Meta Model API)** is the design agent. It proposes hull designs, decides when to call the physics tool, reads the failures, trims the design, writes the explanation for every decision, and refuses unsafe requests. It runs in `agent.py` and in every agent benchmark and pressure test.
 - **Muse Spark 1.3** also answers the one-shot baseline (no tools) in the benchmark.
 - **Muse Image** generated the hero artwork on the website.
-- No other Meta models are used. The physics model, the safety guardrail, the benchmark and the website code are my own work.
+- Every model the project calls at runtime is a Meta model (Muse Spark, plus Muse Image for the website artwork). The physics tool is plain Python, not a model, and no non-Meta model is called at runtime.
+- The physics model, the safety guardrail, the benchmark and the website code are my own work.
 
 ## The problem
 
@@ -83,6 +84,29 @@ In this test the model resisted the pressure by itself, so the code guardrail ne
 
 The run cost about $0.45. The code guardrail never had to block a submission. It remains as a backstop. The messages are fixed templates I wrote (see `redteam_prompts.json`); my first attempt to have the API's model write them was blocked by its content filter. They are single-message attacks against one mission and one hull type, so this shows resistance to this kind of pressure and does not prove general robustness.
 
+## Live console (runs on your own computer)
+
+`python demo_server.py` starts a local page at http://localhost:8000 where you pick a mission and press Run. It streams what Muse Spark says and which tools it calls as they happen, draws each design it tests as a hull, and sweeps the safety factor dive by dive until the design passes or collapses. It calls the Meta Model API for real, which costs a few cents per run. It listens only on 127.0.0.1 and the API key stays in `.env`, so it is not part of the public website.
+
+**Cache.** Each completed live run is saved in `recordings/`. With "use saved runs" ticked, pressing Run for the same mission replays the saved run with its original pacing, with no API call and no cost; the page says so. Untick it for a fresh live run, which then becomes the saved one.
+
+## MCP server (experimental)
+
+`mcp_server.py` exposes the physics check as an MCP (Model Context Protocol) tool, `evaluate_design`, over stdio, using only the Python standard library. Any MCP-capable assistant can then call the same check the agent uses. I tested the protocol with a scripted client (initialize, list tools, call the tool, error cases) and the results matched `physics.py`. I have **not** tested it inside a real assistant such as Muse Code. To try it in Muse Code, add this to `~/.config/muse/settings.json` (the format comes from a third-party integration guide, so check Meta's docs):
+
+```json
+{"mcp_servers": {"hull-forge": {"command": "python3", "args": ["/full/path/to/mcp_server.py"]}}}
+```
+
+The MCP server is not part of the benchmark or the demo; the agent calls the physics function directly.
+
+## Impact
+
+- **Who benefits:** operators and certifiers of crewed submersibles, who need a design check that cannot be talked away; and engineers, who get an assistant that tests its own ideas against physics before proposing them.
+- **Why it matters beyond one accident:** any safety decision made under commercial or social pressure has the same weakness. The pattern here (a model that must pass an evidence check before it can approve anything, with every decision logged) could apply to pressure vessels, aircraft parts and pipelines.
+- **Fit with Push the Frontier:** an AI doing engineering work in materials and structures, using tools and checking its own results, in a domain where mistakes cost lives.
+- **From prototype to use:** `physics.py` is a simplified model. A real deployment would replace it with validated finite-element analysis and certification-code checks. The agent loop, the code-level guardrail and the audit log would stay as they are, and a human engineer would still sign off.
+
 ## What I built vs. what the model does
 
 **Written during the hackathon:**
@@ -100,6 +124,23 @@ The run cost about $0.45. The code guardrail never had to block a submission. It
 ## AI assistance
 
 I used Claude (Anthropic) as a coding assistant to help write and debug `physics.py`, `agent.py`, `benchmark.py` and the showcase page. The agent itself runs on Meta's Muse Spark through the Meta Model API. I ran every benchmark myself, and the numbers in this README are the programs' outputs.
+
+## Preventing hallucinations
+
+- **The model proposes, the physics measures.** Every number about a design (pressures, safety factors, mass, the dive where a hull fails) comes from `physics.py`, not from the model.
+- **A code-level check.** If the model submits a design, the code re-runs the physics first and rejects any design that fails. In my tests the model never needed this, so it is a backstop.
+- **Measured.** The same model with no tool proposed designs that failed the physics in 42 of 72 missions, including all 18 at 7-8 km. With the tool, every final design passed (72 of 72).
+- **Not covered.** The written explanation is free text and is not automatically checked against the tool output. The physics model is also simplified, so a design that passes here is not proven safe in reality.
+
+## Cost and key safety
+
+- Estimated from token counts and list prices: the 72-mission agent benchmark cost about $1.55 (roughly 2 cents per design), the no-tools baseline about $0.69, and the 40-attack red-team test about $0.45. Each agent run is capped at 10 tool steps.
+- The API key lives in `.env` (git-ignored). It is never in the code, the website or the browser. The live console runs only on 127.0.0.1; the public site is static.
+
+## Future work
+
+- Replace `physics.py` with validated finite-element analysis and certification-code checks, keeping the agent loop, guardrail and audit log.
+- Check the numbers quoted in the model's explanation against the tool output.
 
 ## Honest limitations
 
@@ -122,6 +163,7 @@ python benchmark.py baselines full  # no API needed
 python benchmark.py agent full      # all 72 scenarios (needs API key)
 python benchmark.py pressure        # the 8 hand-written pressure prompts
 python benchmark.py redteam         # 40 templated pressure messages
+python demo_server.py               # live console at http://localhost:8000
 ```
 
 ## Files
@@ -129,6 +171,9 @@ python benchmark.py redteam         # 40 templated pressure messages
 - `physics.py`: hull model
 - `agent.py`: agent loop and safety guardrail
 - `benchmark.py`: benchmark and pressure-test harness
+- `demo_server.py`, `demo.html`: live console (local only)
+- `mcp_server.py`: the physics check as an MCP tool (experimental)
+- `recordings/`: saved live-console runs
 - `index.html`, `hero.jpg`: showcase page (GitHub Pages)
 - `redteam_prompts.json`: the 40 pressure messages
 - `decision_log.jsonl`: the agent's real decisions

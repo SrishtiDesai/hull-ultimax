@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hull Forge · live console</title>
+<style>
+:root{--bg:#03242b;--card:rgba(255,255,255,.07);--tx:#effffc;--mu:#a7c9c6;--bd:rgba(170,255,240,.2);--ac:#5eead4;--ok:#6ee7b7;--bad:#ff7a90;--warn:#fcd34d;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(900px 520px at 50% -8%,rgba(190,255,240,.4),transparent 62%),linear-gradient(180deg,#0e6f78,#06404a 38%,#03242b 80%);background-attachment:fixed;min-height:100vh}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 40px}
+h1{margin:0;font-size:1.6rem;letter-spacing:-.02em}.sub{color:var(--mu);font-size:.85rem;margin:2px 0 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:14px;backdrop-filter:blur(12px);box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:14px}
+.bar label{font-size:.75rem;color:var(--mu);display:block}
+input,textarea{background:rgba(0,0,0,.3);border:1px solid var(--bd);color:var(--tx);border-radius:10px;padding:7px 9px;font:inherit}
+input[type=number]{width:84px}textarea{width:100%;height:60px;margin-top:8px;display:none}
+button{border:1px solid var(--bd);background:rgba(255,255,255,.08);color:var(--tx);border-radius:999px;padding:8px 15px;font:inherit;cursor:pointer}
+button.on{border-color:var(--ac);box-shadow:0 0 14px rgba(94,234,212,.35)}button:disabled{opacity:.45;cursor:wait}
+#run{background:var(--ac);color:#03242b;font-weight:700;border-color:var(--ac)}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:14px}@media(max-width:900px){.grid{grid-template-columns:1fr}}
+svg{width:100%;height:auto;display:block}
+#chips{display:flex;gap:6px;flex-wrap:wrap;min-height:26px;margin-bottom:6px}
+.chip{font-size:.75rem;border:1px solid var(--bd);border-radius:999px;padding:2px 9px;color:var(--mu)}.chip.ok{color:var(--ok);border-color:var(--ok)}.chip.no{color:var(--bad);border-color:var(--bad)}
+#stat{color:var(--mu);font-size:.85rem;min-height:1.4em}#stat b{color:var(--tx)}
+#status{color:var(--ac);font-size:.85rem;min-height:1.4em}
+#log{height:370px;overflow:auto;font-size:.82rem;display:flex;flex-direction:column;gap:6px;padding-right:4px}
+#log div{animation:in .3s}@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+.th{color:var(--mu);font-style:italic}.ca{color:var(--ac)}.ok{color:var(--ok)}.no{color:var(--bad)}.wa{color:var(--warn)}
+#final{margin-top:10px;border-left:4px solid var(--bd);padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.25);display:none;font-size:.9rem}
+#final h3{margin:0 0 4px;font-size:1rem}
+.arr{stroke:var(--mu);stroke-width:2;animation:push 1.4s infinite}@keyframes push{0%{transform:translate(0,0);opacity:0}40%{opacity:.9}100%{transform:translate(var(--dx),var(--dy));opacity:0}}
+#hullg{transition:transform .55s cubic-bezier(.6,0,1,.6),opacity .55s;transform-origin:320px 150px}
+.boom #hullg{transform:scale(.18);opacity:.15}
+#flash{fill:#ff7a90;opacity:0}.boom #flash{animation:fl .7s ease-out}@keyframes fl{0%{opacity:.8}100%{opacity:0}}
+.bub{fill:rgba(255,255,255,.25);animation:rise 6s linear infinite}@keyframes rise{from{transform:translateY(0);opacity:.7}to{transform:translateY(-300px);opacity:0}}
+</style></head><body><main>
+<h1>Hull Forge · live console</h1>
+<p class="sub">Runs on this computer and calls Meta’s Muse Spark for real. Each run costs a few cents.</p>
+<div class="card bar">
+<div><button class="on" data-mode="design">Design task</button> <button data-mode="titan">CEO pressure</button> <button data-mode="custom">Custom</button></div>
+<div><label>Depth (m)</label><input id="depth" type="number" value="4000" min="500" max="9000" step="500"></div>
+<div><label>Crew</label><input id="crew" type="number" value="5" min="1" max="8"></div>
+<div><label>Dives</label><input id="dives" type="number" value="200" min="10" max="500" step="10"></div>
+<label style="padding-bottom:8px"><input id="gr" type="checkbox" checked> code guardrail</label>
+<label style="padding-bottom:8px"><input id="cc" type="checkbox" checked> use saved runs (free)</label>
+<button id="run">Run</button>
+<textarea id="req" placeholder="Type a request, for example: Design a hull for 3 crew that is as light as possible."></textarea>
+</div>
+<div class="grid">
+<div class="card"><div id="chips"></div>
+<svg viewBox="0 0 640 300" role="img" aria-label="Hull under pressure"><defs><linearGradient id="w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a8a8a"/><stop offset="1" stop-color="#04303a"/></linearGradient></defs>
+<rect width="640" height="300" rx="14" fill="url(#w)"/>
+<polygon points="250,0 300,0 380,300 260,300" fill="rgba(255,240,190,.08)"/><polygon points="420,0 470,0 560,300 470,300" fill="rgba(255,240,190,.06)"/>
+<circle class="bub" cx="70" cy="290" r="3"/><circle class="bub" cx="560" cy="295" r="4" style="animation-delay:2s"/><circle class="bub" cx="140" cy="280" r="2.5" style="animation-delay:4s"/>
+<g id="arrows"></g><g id="hullg"></g><rect id="flash" width="640" height="300" rx="14"/></svg>
+<div id="stat">Press Run to start.</div>
+<svg viewBox="0 0 640 170" id="chart" role="img" aria-label="Safety factor versus dives"></svg></div>
+<div class="card"><div id="status"></div><div id="log"></div><div id="final"></div></div>
+</div></main>
+<script>
+const $=id=>document.getElementById(id),HRS=8,YM=2,esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));let mode='design',es=null,raf=0,finished=true,attempts=0;
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x===b));$('req').style.display=mode==='custom'?'block':'none';});
+function log(cls,t){const d=document.createElement('div');d.className=cls;d.textContent=t;$('log').appendChild(d);$('log').scrollTop=1e6;}
+function hullSvg(a,state){const sc=70,D=a.diameter_m*sc,w=Math.max(3,a.thickness_mm/1000*sc*2),c=state==='pass'?'#6ee7b7':state==='fail'?'#ff7a90':'#5eead4',fill='rgba(3,36,43,.88)';let h='',W,H;
+if(a.shape==='sphere'){W=H=D;h+=`<circle cx="320" cy="150" r="${D/2}" fill="${fill}" stroke="${c}" stroke-width="${w}"/><circle cx="${320+D/4}" cy="150" r="${Math.max(6,D/14)}" fill="none" stroke="${c}" stroke-width="3"/>`;}
+else{const L=(a.length_m||3)*sc;W=L;H=D;h+=`<rect x="${320-L/2}" y="${150-D/2}" width="${L}" height="${D}" rx="${D/2}" fill="${fill}" stroke="${c}" stroke-width="${w}"/><circle cx="${320+L/2-D/2}" cy="150" r="${Math.max(6,D/10)}" fill="none" stroke="${c}" stroke-width="3"/>`;}
+if(state==='fail')h+=`<path d="M312 ${150-H/2} L326 ${150-H/4} L310 150 L328 ${150+H/4} L318 ${150+H/2}" fill="none" stroke="#ff7a90" stroke-width="3"/>`;
+return {h,W,H};}
+function draw(a,state){const o=hullSvg(a,state);$('hullg').innerHTML=o.h;let ar='';for(let i=0;i<14;i++){const t=i*2*Math.PI/14,cx=Math.cos(t),cy=Math.sin(t),rx=o.W/2+34,ry=o.H/2+34,x=320+cx*rx,y=150+cy*ry,d=Math.hypot(cx*rx,cy*ry),ux=-cx*rx/d,uy=-cy*ry/d;ar+=`<line class="arr" x1="${x}" y1="${y}" x2="${x+ux*12}" y2="${y+uy*12}" style="--dx:${ux*14}px;--dy:${uy*14}px;animation-delay:${(i%7)*.2}s"/>`;}$('arrows').innerHTML=ar;}
+function chart(c,upto,dives,imp){const X=n=>40+n/dives*580,Y=v=>150-(Math.min(Math.max(v,0.5),YM)-0.5)/(YM-0.5)*130,pts=c.slice(0,upto+1).map(p=>X(p[0])+','+Y(p[1])).join(' ');
+let h=`<line stroke="rgba(255,255,255,.25)" x1="40" x2="620" y1="150" y2="150"/><line stroke="#fcd34d" stroke-dasharray="5 4" x1="40" x2="620" y1="${Y(1.5)}" y2="${Y(1.5)}"/><text x="616" text-anchor="end" y="${Y(1.5)-5}" font-size="11" fill="#a7c9c6">required 1.5</text><line stroke="#ff7a90" stroke-dasharray="5 4" x1="40" x2="620" y1="${Y(1)}" y2="${Y(1)}"/><text x="616" text-anchor="end" y="${Y(1)+13}" font-size="11" fill="#a7c9c6">collapse 1.0</text><polyline fill="none" stroke="#5eead4" stroke-width="2.6" points="${pts}"/><text x="330" y="166" font-size="11" fill="#a7c9c6">dives</text>`;
+const last=c[Math.min(upto,c.length-1)];if(imp!=null&&last[0]>=imp)h+=`<circle cx="${X(last[0])}" cy="${Y(last[1])}" r="6" fill="#ff7a90"/>`;$('chart').innerHTML=h;}
+function evaluation(e){cancelAnimationFrame(raf);const a=e.args,r=e.result;attempts++;$('hullg').parentNode.classList.remove('boom');
+const lbl=`${a.material} ${a.shape} · ${a.diameter_m} m · ${a.thickness_mm} mm`;
+if(r.error||!e.curve){log('no','Physics: '+(r.error||'invalid design'));return;}
+const chip=document.createElement('span');chip.className='chip';chip.textContent='Attempt '+attempts+': '+lbl;$('chips').appendChild(chip);
+draw(a,'test');const imp=r.implosion_dive,cv=e.curve;YM=Math.max(2,Math.ceil(cv[0][1]*5)/5+0.2);let t0=performance.now(),boomed=false;const dur=Math.min(3200,cv.length*32);
+(function st(now){const f=Math.min(1,(now-t0)/dur),i=Math.floor(f*(cv.length-1)),n=cv[i][0];chart(cv,i,e.dives,imp);
+$('stat').innerHTML=`Dive <b>${n}</b> of ${e.dives} · ${n*HRS} h underwater · safety factor <b>${cv[i][1].toFixed(2)}</b> · hull ${r.hull_mass_kg} kg`;
+if(imp!=null&&n>=imp&&!boomed){boomed=true;draw(a,'fail');$('hullg').parentNode.classList.add('boom');$('stat').innerHTML=`<b style="color:#ff7a90">HULL IMPLODES on dive ${imp}</b> · about ${imp*HRS} hours underwater`;chip.className='chip no';return;}
+if(f<1){raf=requestAnimationFrame(st);return;}
+draw(a,r.passed?'pass':'fail');chip.className='chip '+(r.passed?'ok':'no');$('stat').innerHTML=r.passed?`<b style="color:#6ee7b7">PASSES</b> all ${e.dives} dives (${e.dives*HRS} h underwater) · end safety factor <b>${r.safety_factor_end_of_life}</b> · ${r.hull_mass_kg} kg`:`<b style="color:#ff7a90">FAILS</b>: ${r.problems.join('; ')}`;})(t0);
+log(r.passed?'ok':'no',(r.passed?'Physics: PASSES. ':'Physics: FAILS. ')+lbl+(r.problems&&r.problems.length?' — '+r.problems.join('; '):''));}
+function handle(e){const T=e.type;if(T!=='waiting')$('status').textContent='';
+if(T==='start'){log(e.cached?'ok':'wa',e.cached?'Replaying a saved run: no API call, $0 spent now.':'Live run: calling Muse Spark for real (costs a few cents).');log('th','Mission: '+e.depth_m+' m, '+e.planned_dives+' dives, '+e.crew+' crew. Request: '+e.request);}
+else if(T==='waiting')$('status').textContent='Muse Spark is thinking… (step '+e.step+')';
+else if(T==='thinking')log('th','Muse Spark: '+e.text);
+else if(T==='tool_call'){const a=e.args;log('ca',e.tool==='evaluate_design'?`→ evaluate_design: ${a.material} ${a.shape}, ${a.diameter_m} m, ${a.thickness_mm} mm`:e.tool==='submit_design'?'→ submit_design':'→ reject_request');}
+else if(T==='evaluation')evaluation(e);
+else if(T==='guardrail_block')log('wa','Code guardrail BLOCKED a submission: the design fails the physics.');
+else if(T==='final'){const f=$('final'),a=e.args;f.style.display='block';
+if(e.tool==='submit_design'){f.style.borderColor='#6ee7b7';f.innerHTML=`<h3 class="ok">Design submitted</h3>${esc(a.material)} ${esc(a.shape)}, ${esc(a.diameter_m)} m, ${esc(a.thickness_mm)} mm.<br><span class="th"></span>`;f.lastChild.textContent=a.explanation||'';}
+else if(e.tool==='reject_request'){f.style.borderColor='#ff7a90';f.innerHTML='<h3 class="no">Request refused</h3><span></span>';f.lastChild.textContent=a.reason||'';}
+else{f.style.borderColor='#fcd34d';f.innerHTML='<h3 class="wa">No decision</h3>The agent hit its 10-step limit.';}}
+else if(T==='done'){finished=true;log('th',e.cached?`Replayed from cache · $0 spent now (the original run cost about $${e.saved_cost==null?'?':e.saved_cost}) · ${e.steps} steps`:`Done in ${e.steps} steps · about $${e.cost} · guardrail blocks: ${e.guardrail_blocks}. Saved for free replays.`);end();}
+else if(T==='error'){finished=true;log('no','Error: '+e.message);end();}}
+function end(){if(es)es.close();$('run').disabled=false;$('status').textContent='';}
+$('run').onclick=()=>{if(es)es.close();cancelAnimationFrame(raf);attempts=0;finished=false;$('log').innerHTML='';$('chips').innerHTML='';$('chart').innerHTML='';$('hullg').innerHTML='';$('arrows').innerHTML='';$('final').style.display='none';$('stat').textContent='';
+$('hullg').parentNode.classList.remove('boom');$('run').disabled=true;
+const p=new URLSearchParams({mode,depth:$('depth').value,crew:$('crew').value,dives:$('dives').value,guardrail:$('gr').checked?1:0,cache:$('cc').checked?1:0,request:$('req').value});
+es=new EventSource('/run?'+p);es.onmessage=m=>handle(JSON.parse(m.data));es.onerror=()=>{es.close();if(!finished){finished=true;log('no','Could not reach the local server. This console only works on the computer that is running: python demo_server.py');}$('run').disabled=false;};};
+</script></body></html>
