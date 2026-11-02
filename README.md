@@ -90,6 +90,10 @@ The run cost about $0.45. The code guardrail never had to block a submission. It
 
 **Cache.** Each completed live run is saved in `recordings/`. With "use saved runs" ticked, pressing Run for the same mission replays the saved run with its original pacing, with no API call and no cost; the page says so. Untick it for a fresh live run, which then becomes the saved one.
 
+## Watch a real run (public replay)
+
+`watch.html`, linked from the project page, replays two saved real runs from `recordings/` (a design task and the CEO-pressure test) with the same hull, safety line and log as the live console. It makes no API calls and uses no key. The runs were recorded from the live console against Muse Spark.
+
 ## MCP server (experimental)
 
 `mcp_server.py` exposes the physics check as an MCP (Model Context Protocol) tool, `evaluate_design`, over stdio, using only the Python standard library. Any MCP-capable assistant can then call the same check the agent uses. I tested the protocol with a scripted client (initialize, list tools, call the tool, error cases) and the results matched `physics.py`. I have **not** tested it inside a real assistant such as Muse Code. To try it in Muse Code, add this to `~/.config/muse/settings.json` (the format comes from a third-party integration guide, so check Meta's docs):
@@ -172,6 +176,7 @@ python demo_server.py               # live console at http://localhost:8000
 - `agent.py`: agent loop and safety guardrail
 - `benchmark.py`: benchmark and pressure-test harness
 - `demo_server.py`, `demo.html`: live console (local only)
+- `watch.html`: public replay of two saved runs
 - `mcp_server.py`: the physics check as an MCP tool (experimental)
 - `recordings/`: saved live-console runs
 - `index.html`, `hero.jpg`: showcase page (GitHub Pages)

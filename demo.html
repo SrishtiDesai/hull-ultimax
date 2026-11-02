@@ -57,7 +57,7 @@ svg{width:100%;height:auto;display:block}
 <div class="card"><div id="status"></div><div id="log"></div><div id="final"></div></div>
 </div></main>
 <script>
-const $=id=>document.getElementById(id),HRS=8,YM=2,esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));let mode='design',es=null,raf=0,finished=true,attempts=0;
+const $=id=>document.getElementById(id),HRS=8,esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));let YM=2,mode='design',es=null,raf=0,finished=true,attempts=0;
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x===b));$('req').style.display=mode==='custom'?'block':'none';});
 function log(cls,t){const d=document.createElement('div');d.className=cls;d.textContent=t;$('log').appendChild(d);$('log').scrollTop=1e6;}
 function hullSvg(a,state){const sc=70,D=a.diameter_m*sc,w=Math.max(3,a.thickness_mm/1000*sc*2),c=state==='pass'?'#6ee7b7':state==='fail'?'#ff7a90':'#5eead4',fill='rgba(3,36,43,.88)';let h='',W,H;
@@ -67,7 +67,7 @@ if(state==='fail')h+=`<path d="M312 ${150-H/2} L326 ${150-H/4} L310 150 L328 ${1
 return {h,W,H};}
 function draw(a,state){const o=hullSvg(a,state);$('hullg').innerHTML=o.h;let ar='';for(let i=0;i<14;i++){const t=i*2*Math.PI/14,cx=Math.cos(t),cy=Math.sin(t),rx=o.W/2+34,ry=o.H/2+34,x=320+cx*rx,y=150+cy*ry,d=Math.hypot(cx*rx,cy*ry),ux=-cx*rx/d,uy=-cy*ry/d;ar+=`<line class="arr" x1="${x}" y1="${y}" x2="${x+ux*12}" y2="${y+uy*12}" style="--dx:${ux*14}px;--dy:${uy*14}px;animation-delay:${(i%7)*.2}s"/>`;}$('arrows').innerHTML=ar;}
 function chart(c,upto,dives,imp){const X=n=>40+n/dives*580,Y=v=>150-(Math.min(Math.max(v,0.5),YM)-0.5)/(YM-0.5)*130,pts=c.slice(0,upto+1).map(p=>X(p[0])+','+Y(p[1])).join(' ');
-let h=`<line stroke="rgba(255,255,255,.25)" x1="40" x2="620" y1="150" y2="150"/><line stroke="#fcd34d" stroke-dasharray="5 4" x1="40" x2="620" y1="${Y(1.5)}" y2="${Y(1.5)}"/><text x="616" text-anchor="end" y="${Y(1.5)-5}" font-size="11" fill="#a7c9c6">required 1.5</text><line stroke="#ff7a90" stroke-dasharray="5 4" x1="40" x2="620" y1="${Y(1)}" y2="${Y(1)}"/><text x="616" text-anchor="end" y="${Y(1)+13}" font-size="11" fill="#a7c9c6">collapse 1.0</text><polyline fill="none" stroke="#5eead4" stroke-width="2.6" points="${pts}"/><text x="330" y="166" font-size="11" fill="#a7c9c6">dives</text>`;
+let h=`<line stroke="rgba(255,255,255,.25)" x1="40" x2="620" y1="150" y2="150"/><line stroke="#fcd34d" stroke-dasharray="5 4" x1="40" x2="620" y1="${Y(1.5)}" y2="${Y(1.5)}"/><text x="616" text-anchor="end" y="${Y(1.5)+13}" font-size="11" fill="#a7c9c6">required 1.5</text><line stroke="#ff7a90" stroke-dasharray="5 4" x1="40" x2="620" y1="${Y(1)}" y2="${Y(1)}"/><text x="616" text-anchor="end" y="${Y(1)+13}" font-size="11" fill="#a7c9c6">collapse 1.0</text><polyline fill="none" stroke="#5eead4" stroke-width="2.6" points="${pts}"/><text x="330" y="166" font-size="11" fill="#a7c9c6">dives</text>`;
 const last=c[Math.min(upto,c.length-1)];if(imp!=null&&last[0]>=imp)h+=`<circle cx="${X(last[0])}" cy="${Y(last[1])}" r="6" fill="#ff7a90"/>`;$('chart').innerHTML=h;}
 function evaluation(e){cancelAnimationFrame(raf);const a=e.args,r=e.result;attempts++;$('hullg').parentNode.classList.remove('boom');
 const lbl=`${a.material} ${a.shape} · ${a.diameter_m} m · ${a.thickness_mm} mm`;
